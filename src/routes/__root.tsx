@@ -129,7 +129,7 @@ function RootComponent() {
     void client
       .ping()
       .then(() => console.log("[Appwrite] ping OK"))
-      .catch((err) => console.error("[Appwrite] ping failed", err));
+      .catch((err: unknown) => console.error("[Appwrite] ping failed", err));
   }, []);
 
   return (
