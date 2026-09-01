@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { FileSignature, MessagesSquare, Search } from "lucide-react";
 
 import { SiteFooter } from "@/components/site-footer";
@@ -122,13 +122,13 @@ function Index() {
                 <Link to="/seller">
                   <span className="relative z-10">Стать продавцом</span>
                   <span aria-hidden className="sheen" />
-                </a>
+                </Link>
               </Button>
               <Button variant="heroGhost" size="xl" asChild>
                 <Link to="/catalog">
                   <span className="relative z-10">Найти товары</span>
                   <span aria-hidden className="sheen" />
-                </a>
+                </Link>
               </Button>
             </div>
           </div>
@@ -167,12 +167,12 @@ function Index() {
                   Предложения, подобранные агентом
                 </h2>
               </div>
-              <a
-                href="#catalog"
+              <Link
+                to="/catalog"
                 className="hidden text-sm text-brand transition-colors hover:underline sm:block"
               >
                 Смотреть все
-              </a>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
