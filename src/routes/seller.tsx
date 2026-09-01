@@ -44,7 +44,7 @@ function Seller() {
   const [items, setItems] = useState<Product[]>(PRODUCTS);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState(CATEGORIES[1]);
+  const [category, setCategory] = useState<string>(CATEGORIES[1]);
   const [description, setDescription] = useState("");
 
   return (
