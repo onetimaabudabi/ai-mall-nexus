@@ -119,13 +119,13 @@ function Index() {
 
             <div className="animate-rise mt-9 flex flex-wrap items-center gap-4 [animation-delay:520ms]">
               <Button variant="hero" size="xl" asChild>
-                <a href="#seller">
+                <Link to="/seller">
                   <span className="relative z-10">Стать продавцом</span>
                   <span aria-hidden className="sheen" />
                 </a>
               </Button>
               <Button variant="heroGhost" size="xl" asChild>
-                <a href="#catalog">
+                <Link to="/catalog">
                   <span className="relative z-10">Найти товары</span>
                   <span aria-hidden className="sheen" />
                 </a>
