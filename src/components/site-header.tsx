@@ -33,14 +33,14 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <a
-            href="#login"
+          <Link
+            to="/dashboard"
             className="hidden rounded-full px-3.5 py-2 text-sm text-brand transition-colors hover:bg-brand/5 sm:block"
           >
             Войти
-          </a>
+          </Link>
           <Button variant="pill" size="default" asChild>
-            <a href="#seller">Стать продавцом</a>
+            <Link to="/seller">Стать продавцом</Link>
           </Button>
         </div>
       </div>
