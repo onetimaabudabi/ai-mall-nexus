@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { motion } from "framer-motion";
 import { FileSignature, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -154,10 +153,8 @@ function Chat() {
 
           <div className="flex-1 space-y-4 overflow-y-auto p-6">
             {active.messages.map((m) => (
-              <motion.div
+              <div
                 key={m.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
                 className={cn("flex", m.from === "me" ? "justify-end" : "justify-start")}
               >
                 <div className={cn("max-w-[80%] space-y-2", m.from === "me" ? "items-end" : "")}>
@@ -192,7 +189,7 @@ function Chat() {
                     {m.time}
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
 

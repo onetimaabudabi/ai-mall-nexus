@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
 import { FileText, Inbox, MessagesSquare, TrendingUp } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
@@ -34,11 +33,8 @@ function Dashboard() {
     <AppShell title="Добрый день, Иван">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {STATS.map((s, i) => (
-          <motion.div
+          <div
             key={s.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06, duration: 0.35 }}
           >
             <Link
               to={s.to}
@@ -51,7 +47,7 @@ function Dashboard() {
               <div className="mt-3 font-mono text-2xl font-semibold text-ink">{s.value}</div>
               <div className="mt-1 text-xs text-dim">{s.delta}</div>
             </Link>
-          </motion.div>
+          </div>
         ))}
       </div>
 

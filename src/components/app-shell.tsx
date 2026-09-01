@@ -114,8 +114,9 @@ export function AppShell({
           )}
         >
           <nav className="flex flex-col gap-0.5">
-            {NAV.map((item) => {
-              const active = pathname === item.to;
+            {NAV.map((item, i) => {
+              const active =
+                pathname === item.to && NAV.findIndex((n) => n.to === pathname) === i;
               return (
                 <Link
                   key={item.label}

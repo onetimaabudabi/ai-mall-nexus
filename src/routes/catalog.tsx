@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
 import { Search, Star } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -143,11 +142,8 @@ function Catalog() {
 
           <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((p, i) => (
-              <motion.article
+              <article
                 key={p.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04, duration: 0.3 }}
                 className="glass-panel group flex flex-col overflow-hidden rounded-2xl"
               >
                 <div className="relative aspect-4/3 overflow-hidden bg-mist">
@@ -187,7 +183,7 @@ function Catalog() {
                     </Button>
                   </div>
                 </div>
-              </motion.article>
+              </article>
             ))}
           </div>
         </div>
