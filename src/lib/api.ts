@@ -74,6 +74,54 @@ const ownerPerms = (userId: string) => [
   Permission.delete(Role.user(userId)),
 ];
 
+export type ProductInput = {
+  title: string;
+  description?: string;
+  supplier?: string;
+  category?: string;
+  price: number;
+  unit?: string;
+  rating: number;
+  imageId?: string | null;
+  status: ProductStatus;
+};
+
+export type ProfileInput = {
+  name?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  inn?: string;
+};
+
+export type ThreadInput = {
+  sellerId?: string;
+  productId?: string;
+  company?: string;
+  stage: NegotiationStage;
+  preview?: string;
+  lastAt?: string;
+};
+
+export type MessageInput = {
+  threadId: string;
+  author: "me" | "agent";
+  text?: string;
+  offerPrice?: string;
+  offerTerm?: string;
+  offerConditions?: string;
+  createdAt?: string;
+};
+
+export type DocumentInput = {
+  threadId?: string;
+  title: string;
+  counterparty?: string;
+  status: DocStatus;
+  body?: string;
+  createdAt?: string;
+};
+
 /* ---------------- products ---------------- */
 
 export async function listProducts() {
@@ -96,7 +144,7 @@ export async function listMyProducts(userId: string) {
 
 export async function createProduct(
   userId: string,
-  data: Omit<Product, "$id" | "ownerId">,
+  data: ProductInput,
 ) {
   return tables.createRow<Product>({
     databaseId: DB_ID,
@@ -107,7 +155,7 @@ export async function createProduct(
   });
 }
 
-export async function updateProduct(id: string, data: Partial<Product>) {
+export async function updateProduct(id: string, data: Partial<ProductInput>) {
   return tables.updateRow<Product>({
     databaseId: DB_ID,
     tableId: TABLES.products,
@@ -141,7 +189,7 @@ export async function getProfile(userId: string) {
   return res.rows[0] ?? null;
 }
 
-export async function saveProfile(userId: string, data: Omit<Profile, "$id" | "userId">) {
+export async function saveProfile(userId: string, data: ProfileInput) {
   const existing = await getProfile(userId);
   if (existing) {
     return tables.updateRow<Profile>({
@@ -173,7 +221,7 @@ export async function listThreads(userId: string) {
 
 export async function createThread(
   userId: string,
-  data: Omit<Thread, "$id" | "buyerId">,
+  data: ThreadInput,
 ) {
   return tables.createRow<Thread>({
     databaseId: DB_ID,
@@ -184,7 +232,7 @@ export async function createThread(
   });
 }
 
-export async function updateThread(id: string, data: Partial<Thread>) {
+export async function updateThread(id: string, data: Partial<ThreadInput>) {
   return tables.updateRow<Thread>({
     databaseId: DB_ID,
     tableId: TABLES.threads,
@@ -204,7 +252,7 @@ export async function listMessages(threadId: string) {
 
 export async function createMessage(
   userId: string,
-  data: Omit<Message, "$id" | "createdAt"> & { createdAt?: string },
+  data: MessageInput,
 ) {
   return tables.createRow<Message>({
     databaseId: DB_ID,
@@ -228,7 +276,7 @@ export async function listDocuments(userId: string) {
 
 export async function createDocument(
   userId: string,
-  data: Omit<DocumentRow, "$id" | "ownerId" | "createdAt"> & { createdAt?: string },
+  data: DocumentInput,
 ) {
   return tables.createRow<DocumentRow>({
     databaseId: DB_ID,
