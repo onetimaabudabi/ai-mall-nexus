@@ -1,3 +1,5 @@
+import type { Models } from "appwrite";
+
 import {
   BUCKET_ID,
   DB_ID,
@@ -14,8 +16,7 @@ export type ProductStatus = "Активен" | "На модерации" | "За
 export type NegotiationStage = "Торг идёт" | "Согласовано" | "Документы готовы";
 export type DocStatus = "Подписан" | "Ожидает подписи" | "Черновик";
 
-export type Product = {
-  $id: string;
+export type Product = Models.Row & {
   ownerId: string;
   title: string;
   description?: string;
@@ -28,8 +29,7 @@ export type Product = {
   status: ProductStatus;
 };
 
-export type Profile = {
-  $id: string;
+export type Profile = Models.Row & {
   userId: string;
   name?: string;
   company?: string;
@@ -38,8 +38,7 @@ export type Profile = {
   inn?: string;
 };
 
-export type Thread = {
-  $id: string;
+export type Thread = Models.Row & {
   buyerId: string;
   sellerId?: string;
   productId?: string;
@@ -49,8 +48,7 @@ export type Thread = {
   lastAt?: string;
 };
 
-export type Message = {
-  $id: string;
+export type Message = Models.Row & {
   threadId: string;
   author: "me" | "agent";
   text?: string;
@@ -60,8 +58,7 @@ export type Message = {
   createdAt?: string;
 };
 
-export type DocumentRow = {
-  $id: string;
+export type DocumentRow = Models.Row & {
   ownerId: string;
   threadId?: string;
   title: string;
