@@ -1,11 +1,12 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
   Inbox,
   LayoutGrid,
+  Loader2,
   MessagesSquare,
   Package,
-  Search,
   Settings,
   Store,
   Menu,
@@ -20,18 +21,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+import { useAuth, useRequireAuth } from "@/hooks/use-auth";
+import { getProfile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { label: "Главная", to: "/dashboard", icon: LayoutGrid },
   { label: "Каталог", to: "/catalog", icon: Store },
   { label: "Мои товары", to: "/seller", icon: Package },
-  { label: "Заявки", to: "/dashboard", icon: Inbox },
   { label: "Чат-переговоры", to: "/chat", icon: MessagesSquare },
   { label: "Документы", to: "/documents", icon: FileText },
   { label: "Настройки", to: "/profile", icon: Settings },
 ] as const;
+
+function initials(name?: string | null) {
+  if (!name) return "AI";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join("");
+}
 
 export function AppShell({
   children,
@@ -42,6 +53,23 @@ export function AppShell({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
+  const { user, loading } = useRequireAuth();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.$id],
+    queryFn: () => getProfile(user!.$id),
+    enabled: !!user,
+  });
+
+  if (loading || !user) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-mist/60">
+        <Loader2 className="size-6 animate-spin text-brand" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-mist/60">
@@ -65,13 +93,7 @@ export function AppShell({
             </span>
           </Link>
 
-          <div className="relative mx-auto w-full max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dim" />
-            <Input
-              placeholder="Поиск товаров, поставщиков, заявок"
-              className="h-9 rounded-full border-border bg-background/70 pl-9 text-sm"
-            />
-          </div>
+          <div className="ml-auto" />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -80,15 +102,21 @@ export function AppShell({
                 className="flex items-center gap-2 rounded-full border border-border bg-background/70 py-1 pl-1 pr-3 transition-colors hover:bg-background"
               >
                 <span className="grid size-7 place-items-center rounded-full bg-brand text-[11px] font-semibold text-brand-foreground">
-                  ИП
+                  {initials(user.name || user.email)}
                 </span>
-                <span className="hidden text-sm text-ink md:block">Иван П.</span>
+                <span className="hidden max-w-32 truncate text-sm text-ink md:block">
+                  {user.name || user.email}
+                </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
-                <div className="text-sm font-medium text-ink">Иван Петров</div>
-                <div className="text-xs text-dim">ООО «Гранит Трейд»</div>
+                <div className="truncate text-sm font-medium text-ink">
+                  {user.name || "Пользователь"}
+                </div>
+                <div className="truncate text-xs text-dim">
+                  {profileQuery.data?.company || user.email}
+                </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
@@ -98,8 +126,12 @@ export function AppShell({
                 <Link to="/documents">Документы</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/">Выйти</Link>
+              <DropdownMenuItem
+                onSelect={() => {
+                  void logout().then(() => navigate({ to: "/" }));
+                }}
+              >
+                Выйти
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -114,9 +146,8 @@ export function AppShell({
           )}
         >
           <nav className="flex flex-col gap-0.5">
-            {NAV.map((item, i) => {
-              const active =
-                pathname === item.to && NAV.findIndex((n) => n.to === pathname) === i;
+            {NAV.map((item) => {
+              const active = pathname === item.to;
               return (
                 <Link
                   key={item.label}
@@ -147,3 +178,5 @@ export function AppShell({
     </div>
   );
 }
+
+export { Inbox };
