@@ -82,7 +82,7 @@ function Seller() {
       const imageId = file ? await uploadProductImage(file) : null;
       return createProduct(user.$id, {
         title: title.trim(),
-        description: description.trim() || undefined,
+        description: description.trim(),
         supplier: profileQuery.data?.company || user.name || "Мой бизнес",
         category,
         price: Number(price) || 0,
