@@ -1,9 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, Inbox, MessagesSquare, TrendingUp } from "lucide-react";
+import { FileText, MessagesSquare, Package, Store } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { ACTIVITY } from "@/lib/mock-data";
+import { useAuth } from "@/hooks/use-auth";
+import { listDocuments, listMyProducts, listProducts, listThreads } from "@/lib/api";
 
 const TITLE = "Дашборд AI-Mall — заявки, переговоры и документы";
 const DESCRIPTION =
@@ -21,51 +23,90 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-const STATS = [
-  { label: "Активные заявки", value: "12", delta: "+3 за неделю", icon: Inbox, to: "/catalog" },
-  { label: "Новые сообщения", value: "5", delta: "2 требуют ответа", icon: MessagesSquare, to: "/chat" },
-  { label: "Ожидают документов", value: "3", delta: "1 на подписи", icon: FileText, to: "/documents" },
-  { label: "Оборот за месяц", value: "1,4 млн ₽", delta: "+18%", icon: TrendingUp, to: "/documents" },
-] as const;
-
 function Dashboard() {
+  const { user } = useAuth();
+
+  const threads = useQuery({
+    queryKey: ["threads", user?.$id],
+    queryFn: () => listThreads(user!.$id),
+    enabled: !!user,
+  });
+  const docs = useQuery({
+    queryKey: ["documents", user?.$id],
+    queryFn: () => listDocuments(user!.$id),
+    enabled: !!user,
+  });
+  const mine = useQuery({
+    queryKey: ["my-products", user?.$id],
+    queryFn: () => listMyProducts(user!.$id),
+    enabled: !!user,
+  });
+  const all = useQuery({ queryKey: ["products"], queryFn: listProducts });
+
+  const stats = [
+    {
+      label: "Активные переговоры",
+      value: (threads.data ?? []).filter((t) => t.stage !== "Документы готовы").length,
+      icon: MessagesSquare,
+      to: "/chat" as const,
+    },
+    {
+      label: "Документы",
+      value: (docs.data ?? []).length,
+      icon: FileText,
+      to: "/documents" as const,
+    },
+    { label: "Мои товары", value: (mine.data ?? []).length, icon: Package, to: "/seller" as const },
+    { label: "Товаров в каталоге", value: (all.data ?? []).length, icon: Store, to: "/catalog" as const },
+  ];
+
+  const activity = [...(threads.data ?? [])]
+    .sort((a, b) => (b.lastAt ?? b.$createdAt).localeCompare(a.lastAt ?? a.$createdAt))
+    .slice(0, 6);
+
   return (
-    <AppShell title="Добрый день, Иван">
+    <AppShell title={`Добрый день, ${user?.name?.split(" ")[0] ?? ""}`.trim()}>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {STATS.map((s, i) => (
-          <div
+        {stats.map((s) => (
+          <Link
             key={s.label}
+            to={s.to}
+            className="glass-panel block rounded-2xl p-5 transition-shadow hover:shadow-lg"
           >
-            <Link
-              to={s.to}
-              className="glass-panel block rounded-2xl p-5 transition-shadow hover:shadow-lg"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-dim">{s.label}</span>
-                <s.icon className="size-4 text-brand" />
-              </div>
-              <div className="mt-3 font-mono text-2xl font-semibold text-ink">{s.value}</div>
-              <div className="mt-1 text-xs text-dim">{s.delta}</div>
-            </Link>
-          </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-dim">{s.label}</span>
+              <s.icon className="size-4 text-brand" />
+            </div>
+            <div className="mt-3 font-mono text-2xl font-semibold text-ink">{s.value}</div>
+          </Link>
         ))}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <section className="glass-panel rounded-2xl p-6 lg:col-span-2">
           <h2 className="text-base font-semibold text-ink">Последние активности</h2>
-          <ol className="mt-5 space-y-5">
-            {ACTIVITY.map((a) => (
-              <li key={a.title} className="flex gap-4">
-                <div className="w-16 shrink-0 pt-0.5 font-mono text-xs text-dim">{a.time}</div>
-                <div className="relative border-l border-border pl-5">
-                  <span className="absolute -left-[4.5px] top-1.5 size-2 rounded-full bg-brand" />
-                  <div className="text-sm font-medium text-ink">{a.title}</div>
-                  <div className="mt-0.5 text-sm text-dim">{a.detail}</div>
-                </div>
-              </li>
-            ))}
-          </ol>
+          {activity.length === 0 ? (
+            <p className="mt-5 text-sm text-dim">
+              Активности пока нет — начните с поиска товаров в каталоге.
+            </p>
+          ) : (
+            <ol className="mt-5 space-y-5">
+              {activity.map((t) => (
+                <li key={t.$id} className="flex gap-4">
+                  <div className="w-16 shrink-0 pt-0.5 font-mono text-xs text-dim">
+                    {new Date(t.lastAt ?? t.$createdAt).toLocaleDateString("ru-RU")}
+                  </div>
+                  <div className="relative border-l border-border pl-5">
+                    <span className="absolute -left-[4.5px] top-1.5 size-2 rounded-full bg-brand" />
+                    <div className="text-sm font-medium text-ink">
+                      {t.company} · {t.stage}
+                    </div>
+                    <div className="mt-0.5 text-sm text-dim">{t.preview}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
         </section>
 
         <section className="glass-panel rounded-2xl p-6">
@@ -81,9 +122,6 @@ function Dashboard() {
               <Link to="/chat">Открыть переговоры</Link>
             </Button>
           </div>
-          <p className="mt-5 text-xs leading-relaxed text-dim">
-            ИИ-агент ведёт 3 переговора автономно и уведомит вас, когда потребуется решение.
-          </p>
         </section>
       </div>
     </AppShell>
