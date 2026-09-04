@@ -1,5 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ImagePlus, Pencil, Archive } from "lucide-react";
+import { Archive, ImagePlus, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -15,7 +16,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORIES, PRODUCTS, type Product } from "@/lib/mock-data";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  createProduct,
+  deleteProduct,
+  getProfile,
+  listMyProducts,
+  uploadProductImage,
+  type Product,
+  type ProductStatus,
+} from "@/lib/api";
+import { fileUrl } from "@/lib/appwrite";
+import { CATEGORIES, fallbackImage } from "@/lib/catalog-meta";
 import { cn } from "@/lib/utils";
 
 const TITLE = "Кабинет продавца AI-Mall — товары и модерация";
@@ -34,18 +46,75 @@ export const Route = createFileRoute("/seller")({
   component: Seller,
 });
 
-const STATUS_STYLE: Record<Product["status"], string> = {
+const STATUS_STYLE: Record<ProductStatus, string> = {
   Активен: "bg-brand/10 text-brand",
   "На модерации": "bg-gold/15 text-gold",
   Завершён: "bg-foreground/5 text-dim",
 };
 
 function Seller() {
-  const [items, setItems] = useState<Product[]>(PRODUCTS);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [unit, setUnit] = useState("шт");
   const [category, setCategory] = useState<string>(CATEGORIES[1]);
   const [description, setDescription] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+
+  const productsQuery = useQuery({
+    queryKey: ["my-products", user?.$id],
+    queryFn: () => listMyProducts(user!.$id),
+    enabled: !!user,
+  });
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.$id],
+    queryFn: () => getProfile(user!.$id),
+    enabled: !!user,
+  });
+
+  const items = productsQuery.data ?? [];
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("auth");
+      const imageId = file ? await uploadProductImage(file) : null;
+      return createProduct(user.$id, {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        supplier: profileQuery.data?.company || user.name || "Мой бизнес",
+        category,
+        price: Number(price) || 0,
+        unit,
+        rating: 0,
+        imageId,
+        status: "Активен",
+      });
+    },
+    onSuccess: async () => {
+      setTitle("");
+      setPrice("");
+      setDescription("");
+      setFile(null);
+      await queryClient.invalidateQueries({ queryKey: ["my-products"] });
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Товар опубликован");
+    },
+    onError: () => toast.error("Не удалось сохранить товар"),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteProduct(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["my-products"] });
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Товар удалён");
+    },
+    onError: () => toast.error("Не удалось удалить товар"),
+  });
+
+  const imageOf = (p: Product) => fileUrl(p.imageId) ?? fallbackImage(p.$id);
 
   return (
     <AppShell title="Мои товары">
@@ -58,24 +127,7 @@ function Seller() {
               toast.error("Заполните название и цену");
               return;
             }
-            setItems((prev) => [
-              {
-                id: `new-${Date.now()}`,
-                title: title.trim(),
-                supplier: "ООО «Гранит Трейд»",
-                category,
-                price: Number(price) || 0,
-                unit: "шт",
-                rating: 0,
-                image: PRODUCTS[0]!.image,
-                status: "На модерации",
-              },
-              ...prev,
-            ]);
-            setTitle("");
-            setPrice("");
-            setDescription("");
-            toast.success("Товар отправлен на модерацию");
+            create.mutate();
           }}
         >
           <h2 className="text-base font-semibold text-ink">Добавить товар</h2>
@@ -83,7 +135,12 @@ function Seller() {
           <div className="mt-5 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="p-title">Название</Label>
-              <Input id="p-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Кружки с логотипом" />
+              <Input
+                id="p-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Кружки с логотипом"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="p-desc">Описание</Label>
@@ -98,33 +155,50 @@ function Seller() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="p-price">Цена, ₽</Label>
-                <Input id="p-price" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="350" />
+                <Input
+                  id="p-price"
+                  inputMode="numeric"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="350"
+                />
               </div>
               <div className="space-y-2">
-                <Label>Категория</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.slice(1).map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="p-unit">Единица</Label>
+                <Input id="p-unit" value={unit} onChange={(e) => setUnit(e.target.value)} />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Категория</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.slice(1).map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-background/60 p-6 text-center transition-colors hover:border-brand/40">
               <ImagePlus className="size-5 text-dim" />
-              <span className="text-sm text-dim">Загрузить фото товара</span>
-              <input type="file" accept="image/*" className="hidden" onChange={() => toast.success("Фото загружено")} />
+              <span className="text-sm text-dim">
+                {file ? file.name : "Загрузить фото товара"}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
             </label>
 
-            <Button type="submit" variant="hero" className="h-11 w-full">
-              Опубликовать
+            <Button type="submit" variant="hero" className="h-11 w-full" disabled={create.isPending}>
+              {create.isPending ? <Loader2 className="size-4 animate-spin" /> : "Опубликовать"}
             </Button>
           </div>
         </form>
@@ -133,38 +207,45 @@ function Seller() {
           <div className="border-b border-border px-6 py-4 text-base font-semibold text-ink">
             Список товаров · {items.length}
           </div>
-          <ul className="divide-y divide-border">
-            {items.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center gap-4 px-6 py-4">
-                <img src={p.image} alt={p.title} loading="lazy" className="size-14 rounded-xl object-cover" />
-                <div className="min-w-40 flex-1">
-                  <div className="text-sm font-medium text-ink">{p.title}</div>
-                  <div className="text-xs text-dim">
-                    {p.category} · {p.price.toLocaleString("ru-RU")} ₽
+          {productsQuery.isLoading ? (
+            <div className="grid place-items-center py-16">
+              <Loader2 className="size-5 animate-spin text-brand" />
+            </div>
+          ) : items.length === 0 ? (
+            <p className="px-6 py-16 text-center text-sm text-dim">
+              Пока нет товаров. Добавьте первый — он сразу появится в каталоге.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {items.map((p) => (
+                <li key={p.$id} className="flex flex-wrap items-center gap-4 px-6 py-4">
+                  <img
+                    src={imageOf(p)}
+                    alt={p.title}
+                    loading="lazy"
+                    className="size-14 rounded-xl object-cover"
+                  />
+                  <div className="min-w-40 flex-1">
+                    <div className="text-sm font-medium text-ink">{p.title}</div>
+                    <div className="text-xs text-dim">
+                      {p.category} · {p.price.toLocaleString("ru-RU")} ₽/{p.unit ?? "шт"}
+                    </div>
                   </div>
-                </div>
-                <span className={cn("rounded-full px-3 py-1 text-xs", STATUS_STYLE[p.status])}>
-                  {p.status}
-                </span>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" aria-label="Редактировать" onClick={() => toast("Редактирование карточки")}>
-                    <Pencil className="size-4" />
-                  </Button>
+                  <span className={cn("rounded-full px-3 py-1 text-xs", STATUS_STYLE[p.status])}>
+                    {p.status}
+                  </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Архивировать"
-                    onClick={() => {
-                      setItems((prev) => prev.filter((x) => x.id !== p.id));
-                      toast.success("Товар архивирован");
-                    }}
+                    aria-label="Удалить"
+                    onClick={() => remove.mutate(p.$id)}
                   >
                     <Archive className="size-4" />
                   </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </AppShell>
