@@ -98,10 +98,8 @@ function Index() {
           </div>
 
           <div className="relative mx-auto max-w-4xl px-6 pb-16 pt-20 md:pb-24 md:pt-28">
-            <div className="animate-rise mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-dim shadow-sm backdrop-blur">
-              <span className="animate-pulse-dot size-1.5 rounded-full bg-gold" />
-              <span className="font-mono tracking-tight">HACKATHON · РОСЭЛТОРГ</span>
-            </div>
+
+
 
             <h1 className="text-balance text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] md:text-7xl">
               <span className="animate-word-up inline-block [animation-delay:60ms]">AI-Mall —</span>
